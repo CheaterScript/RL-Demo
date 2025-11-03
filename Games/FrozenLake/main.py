@@ -3,8 +3,10 @@ import numpy as np
 import random as rd
 from tqdm import trange
 
+IS_TRAIN = False
+
 env = gym.make("FrozenLake-v1", map_name="4x4",
-               is_slippery=True, render_mode="rgb_array")
+               is_slippery=False, render_mode=None if IS_TRAIN else "human")
 print("_____OBSERVATION SPACE_____ \n")
 print("Observation Space", env.observation_space)
 print("Sample observation", env.observation_space.sample())
@@ -78,11 +80,11 @@ def evaluate_agent(env, max_steps, n_eval_episodes, Q, seed):
         total_rewards_ep = 0
 
         for step in range(max_steps):
+            # env.render()
             # Take the action (index) that have the maximum expected future reward given that state
             action = greedy_policy(Q, state)
             new_state, reward, terminated, truncated, info = env.step(action)
             total_rewards_ep += reward
-
             if terminated or truncated:
                 break
             state = new_state
@@ -91,17 +93,22 @@ def evaluate_agent(env, max_steps, n_eval_episodes, Q, seed):
     std_reward = np.std(episode_rewards)
 
     return mean_reward, std_reward
-        
 
 
 learning_rate = 0.7
 gamma = 0.99
 max_steps = 99
-n_eval_episodes = 10000
+n_eval_episodes = 1000
 eval_seed = []
 
-Qtable_frozenlake = train(n_eval_episodes, 0.05, 1, 0.0005, env, max_steps, Qtable_frozenlake)
+if IS_TRAIN:
+    Qtable_frozenlake = train(n_eval_episodes, 0.05,
+                              1, 0.0005, env, max_steps, Qtable_frozenlake)
+    np.save('array_file.npy', Qtable_frozenlake)
+else:
+    Qtable_frozenlake = np.load('array_file.npy')
 
 # Evaluate our Agent
-mean_reward, std_reward = evaluate_agent(env, max_steps, n_eval_episodes, Qtable_frozenlake, eval_seed)
+mean_reward, std_reward = evaluate_agent(
+    env, max_steps, n_eval_episodes, Qtable_frozenlake, eval_seed)
 print(f"Mean_reward={mean_reward:.2f} +/- {std_reward:.2f}")
