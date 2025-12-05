@@ -73,6 +73,13 @@ def sigmoid_grad(z):
     return grad
 
 
+def relu(z):
+    return np.maximum(z, 0)
+
+
+def relu_grad(z):
+    return np.where(z > 0, 1.0, 0.0)
+
 print("sigmoid([0, 2]) = " + str(sigmoid(np.array([0, 2]))))
 
 
@@ -152,7 +159,7 @@ def propagate(W1, B1, W2, B2, X, Y):
     # FORWARD PROPAGATION (FROM X TO COST)
     # START CODE HERE ### (≈ 2 lines of code)
     Z1 = W1@X+B1  # (2,n) * (n, batchs) = (2, batchs) + (2, 1) = (2, batchs)
-    A1 = sigmoid(Z1)  # (2, batchs)
+    A1 = relu(Z1)  # (2, batchs)
     Z2 = W2@A1 + B2  # (1,2) * (2,batchs) = (1,batchs) + (1,1) = (1,batchs)
     A2 = sigmoid(Z2)            # compute activation
     cost = -1/m*np.sum(Y * np.log(A2)+(1-Y) *
@@ -165,7 +172,7 @@ def propagate(W1, B1, W2, B2, X, Y):
     dW2 = 1/m * dZ2@A1.T  # (1,batchs) * (batchs, 2) = (1, 2)
     dB2 = 1/m * np.sum(dZ2, axis=1, keepdims=True)  # (1,1)
     # (1,2).T = (2,1) * (1,batchs) = (2, batchs) x (2, batchs) = (2,batchs)
-    dZ1 = W2.T @ dZ2 * sigmoid_grad(Z1)
+    dZ1 = W2.T @ dZ2 * relu_grad(Z1)
     dW1 = 1/m * dZ1 @ X.T  # (2,batchs) * (batchs,n) = (2, n)
     dB1 = 1/m * np.sum(dZ1, axis=1, keepdims=True)  # (2,1)
     ### END CODE HERE ###
@@ -300,7 +307,7 @@ def predict(W1, B1, W2, B2, X):
     # Compute vector "A" predicting the probabilities of a cat being present in the picture
     # START CODE HERE ### (≈ 1 line of code)
     Z1 = W1@X+B1  # (2,n) * (n, m) + (2,1) = (2,m)
-    A1 = sigmoid(Z1)  # (2, m)
+    A1 = relu(Z1)  # (2, m)
     z2 = W2 @ A1 + B2  # (1, 2) * (2,m) + (1,1) = (1,m)
     a2 = sigmoid(z2)  # (1,m)
     ### END CODE HERE ###
@@ -343,9 +350,9 @@ def model(X_train, Y_train, X_test, Y_test, num_iterations=2000, learning_rate=0
 
     # initialize parameters with zeros (≈ 1 line of code)
     print(X_train.shape[0])
-    W1 = initialize_W((2, X_train.shape[0]))
-    B1 = initialize_B(2)
-    W2 = initialize_W((1, 2))
+    W1 = initialize_W((10, X_train.shape[0]))
+    B1 = initialize_B(10)
+    W2 = initialize_W((1, 10))
     B2 = initialize_B(1)
     # w, b = initialize_with_zeros(X_train.shape[0])
 
@@ -385,7 +392,7 @@ def model(X_train, Y_train, X_test, Y_test, num_iterations=2000, learning_rate=0
 
 
 d = model(train_set_x, train_set_y, test_set_x, test_set_y,
-          num_iterations=10000, learning_rate=0.01, print_cost=True)
+          num_iterations=6770, learning_rate=0.001, print_cost=True)
 
 
 # # Example of a picture that was wrongly classified.
