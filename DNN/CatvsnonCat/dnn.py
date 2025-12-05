@@ -99,7 +99,7 @@ def initialize_W(dims):
     """
 
     # START CODE HERE ### (≈ 1 line of code)
-    W = np.random.randn(dims[0], dims[1])
+    W = np.random.randn(dims[0], dims[1]) * 0.01
     ### END CODE HERE ###
 
     assert (W.shape == dims)
@@ -160,7 +160,7 @@ def propagate(W1, B1, W2, B2, X, Y):
     # FORWARD PROPAGATION (FROM X TO COST)
     # START CODE HERE ### (≈ 2 lines of code)
     Z1 = W1@X+B1  # (2,n) * (n, batchs) = (2, batchs) + (2, 1) = (2, batchs)
-    A1 = sigmoid(Z1)  # (2, batchs)
+    A1 = relu(Z1)  # (2, batchs)
     Z2 = W2@A1 + B2  # (1,2) * (2,batchs) = (1,batchs) + (1,1) = (1,batchs)
     A2 = sigmoid(Z2)            # compute activation
     cost = -1/m*np.sum(Y * np.log(A2)+(1-Y) *
@@ -173,7 +173,7 @@ def propagate(W1, B1, W2, B2, X, Y):
     dW2 = 1/m * dZ2@A1.T  # (1,batchs) * (batchs, 2) = (1, 2)
     dB2 = 1/m * np.sum(dZ2, axis=1, keepdims=True)  # (1,1)
     # (1,2).T = (2,1) * (1,batchs) = (2, batchs) x (2, batchs) = (2,batchs)
-    dZ1 = W2.T @ dZ2 * sigmoid_grad(Z1)
+    dZ1 = W2.T @ dZ2 * relu_grad(Z1)
     dW1 = 1/m * dZ1 @ X.T  # (2,batchs) * (batchs,n) = (2, n)
     dB1 = 1/m * np.sum(dZ1, axis=1, keepdims=True)  # (2,1)
     ### END CODE HERE ###
@@ -308,7 +308,7 @@ def predict(W1, B1, W2, B2, X):
     # Compute vector "A" predicting the probabilities of a cat being present in the picture
     # START CODE HERE ### (≈ 1 line of code)
     Z1 = W1@X+B1  # (2,n) * (n, m) + (2,1) = (2,m)
-    A1 = sigmoid(Z1)  # (2, m)
+    A1 = relu(Z1)  # (2, m)
     z2 = W2 @ A1 + B2  # (1, 2) * (2,m) + (1,1) = (1,m)
     a2 = sigmoid(z2)  # (1,m)
     ### END CODE HERE ###
@@ -393,7 +393,7 @@ def model(X_train, Y_train, X_test, Y_test, num_iterations=2000, learning_rate=0
 
 
 d = model(train_set_x, train_set_y, test_set_x, test_set_y,
-          num_iterations=100000, learning_rate=0.03, print_cost=True)
+          num_iterations=10000, learning_rate=0.003, print_cost=True)
 
 
 # # Example of a picture that was wrongly classified.
