@@ -53,7 +53,7 @@ test_set_x = test_set_x_flatten/255.
 
 # GRADED FUNCTION: L_layer_model
 
-def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, num_iterations=3000, print_cost=False):  # lr was 0.009
+def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, num_iterations=3000, initialization="zeros", print_cost=False, lambd=0, keep_prob=1):  # lr was 0.009
     """
     Implements a L-layer neural network: [LINEAR->RELU]*(L-1)->LINEAR->SIGMOID.
 
@@ -74,7 +74,10 @@ def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, num_iterations=3000, 
 
     # Parameters initialization.
     ### START CODE HERE ###
-    parameters = initialize_parameters_deep(layers_dims)
+    if initialization == "He":
+        parameters = initialize_parameters_He(layers_dims)
+    else:
+        parameters = initialize_parameters_deep(layer_dims)
     ### END CODE HERE ###
 
     # Loop (gradient descent)
@@ -82,17 +85,28 @@ def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, num_iterations=3000, 
 
         # Forward propagation: [LINEAR -> RELU]*(L-1) -> LINEAR -> SIGMOID.
         # START CODE HERE ### (≈ 1 line of code)
-        AL, caches = L_model_forward(X, parameters)
+        if keep_prob == 1:
+            AL, caches = L_model_forward(X, parameters)
+        elif keep_prob < 1:
+            AL, caches = L_model_forward(X, parameters)
+        else:
+            AL, caches = L_model_forward(X, parameters)
         ### END CODE HERE ###
 
         # Compute cost.
         # START CODE HERE ### (≈ 1 line of code)
-        cost = compute_cost(AL, Y)
+        if lambd == 0:
+            cost = compute_cost(AL, Y)
+        else:
+            cost = compute_cost_with_regularization(AL, Y, parameters, lambd)
         ### END CODE HERE ###
 
         # Backward propagation.
         # START CODE HERE ### (≈ 1 line of code)
-        grads = L_model_backward(AL, Y, caches)
+        if lambd == 0 and keep_prob == 1:
+            grads = L_model_backward(AL, Y, caches)
+        elif lambd != 0:
+            grads = L_model_backward_with_regularization(AL, Y, caches, lambd)
         ### END CODE HERE ###
 
         # Update parameters.
@@ -124,7 +138,7 @@ def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, num_iterations=3000, 
 layer_dims = (12288, 20, 7, 5, 1)
 
 parameters = L_layer_model(train_set_x, train_set_y, layer_dims,
-                           learning_rate=0.0075, num_iterations=2500, print_cost=True)
+                           learning_rate=0.0075, num_iterations=2000, initialization="He", print_cost=True, lambd=0.5, keep_prob=1)
 predict(train_set_x, train_set_y, parameters)
 predict(test_set_x, test_set_y, parameters)
 
