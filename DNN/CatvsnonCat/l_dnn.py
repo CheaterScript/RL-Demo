@@ -86,11 +86,11 @@ def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, num_iterations=3000, 
         # Forward propagation: [LINEAR -> RELU]*(L-1) -> LINEAR -> SIGMOID.
         # START CODE HERE ### (≈ 1 line of code)
         if keep_prob == 1:
-            AL, caches = L_model_forward(X, parameters)
+            AL, caches, DCaches = L_model_forward(X, parameters, keep_prob)
         elif keep_prob < 1:
-            AL, caches = L_model_forward(X, parameters)
+            AL, caches, DCaches = L_model_forward(X, parameters, keep_prob)
         else:
-            AL, caches = L_model_forward(X, parameters)
+            AL, caches, DCaches = L_model_forward(X, parameters, keep_prob)
         ### END CODE HERE ###
 
         # Compute cost.
@@ -104,9 +104,11 @@ def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, num_iterations=3000, 
         # Backward propagation.
         # START CODE HERE ### (≈ 1 line of code)
         if lambd == 0 and keep_prob == 1:
-            grads = L_model_backward(AL, Y, caches)
+            grads = L_model_backward(AL, Y, caches, DCaches, keep_prob)
         elif lambd != 0:
             grads = L_model_backward_with_regularization(AL, Y, caches, lambd)
+        elif keep_prob < 1:
+            grads = L_model_backward(AL, Y, caches, DCaches, keep_prob)
         ### END CODE HERE ###
 
         # Update parameters.
@@ -138,7 +140,7 @@ def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, num_iterations=3000, 
 layer_dims = (12288, 20, 7, 5, 1)
 
 parameters = L_layer_model(train_set_x, train_set_y, layer_dims,
-                           learning_rate=0.0075, num_iterations=2000, initialization="He", print_cost=True, lambd=0.5, keep_prob=1)
+                           learning_rate=0.004, num_iterations=2500, initialization="He", print_cost=True, lambd=0, keep_prob=0.7)
 predict(train_set_x, train_set_y, parameters)
 predict(test_set_x, test_set_y, parameters)
 

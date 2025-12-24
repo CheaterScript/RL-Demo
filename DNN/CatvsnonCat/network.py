@@ -94,7 +94,7 @@ def initialize_parameters_deep(layer_dims):
 
     for l in range(1, L):
         parameters["W" +
-                   str(l)] = np.random.randn(layer_dims[l], layer_dims[l-1]) / np.sqrt(layer_dims[l-1])
+                   str(l)] = np.random.randn(layer_dims[l], layer_dims[l-1]) / np.sqrt(layer_dims[l-1]) * 0.5
         parameters["b" + str(l)] = np.zeros((layer_dims[l], 1))
 
     return parameters
@@ -174,7 +174,7 @@ print("Z = " + str(Z))
 # GRADED FUNCTION: linear_activation_forward
 
 
-def linear_activation_forward(A_prev, W, b, activation):
+def linear_activation_forward(A_prev, W, b, activation, keep_prob):
     """
     Implement the forward propagation for the LINEAR->ACTIVATION layer
 
@@ -203,25 +203,29 @@ def linear_activation_forward(A_prev, W, b, activation):
         A, activation_cache = relu(Z)
         ### END CODE HERE ###
 
+    D = (np.random.rand(A.shape[0], A.shape[1]) <= keep_prob).astype(int)
+    A = A * D
+    A = A / keep_prob
+
     assert (A.shape == (W.shape[0], A_prev.shape[1]))
     cache = (linear_cache, activation_cache)
-    return A, cache
+    return A, cache, D
 
 
 A_prev, W, b = linear_activation_forward_test_case()
 
-A, linear_activation_cache = linear_activation_forward(
-    A_prev, W, b, activation="sigmoid")
+A, linear_activation_cache, _ = linear_activation_forward(
+    A_prev, W, b, activation="sigmoid", keep_prob=1)
 print("With sigmoid: A = " + str(A))
 
-A, linear_activation_cache = linear_activation_forward(
-    A_prev, W, b, activation="relu")
+A, linear_activation_cache, _ = linear_activation_forward(
+    A_prev, W, b, activation="relu", keep_prob=1)
 print("With ReLU: A = " + str(A))
 
 # GRADED FUNCTION: L_model_forward
 
 
-def L_model_forward(X, parameters):
+def L_model_forward(X, parameters, keep_prob):
     """
     Implement forward propagation for the [LINEAR->RELU]*(L-1)->LINEAR->SIGMOID computation
 
@@ -237,6 +241,7 @@ def L_model_forward(X, parameters):
     """
 
     caches = []
+    DCaches = []
     A = X
     # number of layers in the neural network
     L = len(parameters) // 2
@@ -245,24 +250,28 @@ def L_model_forward(X, parameters):
     for l in range(1, L):
         A_prev = A
         # START CODE HERE ### (≈ 2 lines of code)
-        A, cache = linear_activation_forward(
-            A_prev, parameters["W" + str(l)], parameters["b" + str(l)], "relu")
+        A, cache, D = linear_activation_forward(
+            A_prev, parameters["W" + str(l)], parameters["b" + str(l)], "relu", keep_prob)
         caches.append(cache)
+        DCaches.append(D)
+
         ### END CODE HERE ###
 
     # Implement LINEAR -> SIGMOID. Add "cache" to the "caches" list.
     # START CODE HERE ### (≈ 2 lines of code)
-    AL, cache = linear_activation_forward(
-        A, parameters["W" + str(L)], parameters["b" + str(L)], "sigmoid")
+    AL, cache, D = linear_activation_forward(
+        A, parameters["W" + str(L)], parameters["b" + str(L)], "sigmoid", keep_prob=1)
     caches.append(cache)
+    DCaches.append(D)
+
     ### END CODE HERE ###
     assert (AL.shape == (1, X.shape[1]))
 
-    return AL, caches
+    return AL, caches, DCaches
 
 
 X, parameters = L_model_forward_test_case()
-AL, caches = L_model_forward(X, parameters)
+AL, caches, _ = L_model_forward(X, parameters, 1)
 print("AL = " + str(AL))
 print("Length of caches list = " + str(len(caches)))
 
@@ -375,7 +384,7 @@ def linear_backward_with_regularization(dZ, cache, lambd):
 # GRADED FUNCTION: linear_activation_backward
 
 
-def linear_activation_backward(dA, cache, activation):
+def linear_activation_backward(dA, cache, activation, D, keep_prob):
     """
     Implement the backward propagation for the LINEAR->ACTIVATION layer.
 
@@ -390,6 +399,9 @@ def linear_activation_backward(dA, cache, activation):
     db -- Gradient of the cost with respect to b (current layer l), same shape as b
     """
     linear_cache, activation_cache = cache
+
+    dA = dA * D
+    dA /= keep_prob
 
     if activation == "relu":
         # START CODE HERE ### (≈ 2 lines of code)
@@ -408,19 +420,19 @@ def linear_activation_backward(dA, cache, activation):
 
 AL, linear_activation_cache = linear_activation_backward_test_case()
 
-dA_prev, dW, db = linear_activation_backward(
-    AL, linear_activation_cache, activation="sigmoid")
-print("sigmoid:")
-print("dA_prev = " + str(dA_prev))
-print("dW = " + str(dW))
-print("db = " + str(db) + "\n")
+# dA_prev, dW, db = linear_activation_backward(
+#     AL, linear_activation_cache, activation="sigmoid", [], 1)
+# print("sigmoid:")
+# print("dA_prev = " + str(dA_prev))
+# print("dW = " + str(dW))
+# print("db = " + str(db) + "\n")
 
-dA_prev, dW, db = linear_activation_backward(
-    AL, linear_activation_cache, activation="relu")
-print("relu:")
-print("dA_prev = " + str(dA_prev))
-print("dW = " + str(dW))
-print("db = " + str(db))
+# dA_prev, dW, db = linear_activation_backward(
+#     AL, linear_activation_cache, activation="relu")
+# print("relu:")
+# print("dA_prev = " + str(dA_prev))
+# print("dW = " + str(dW))
+# print("db = " + str(db))
 
 
 def linear_activation_backward_with_regularization(dA, cache, activation, lambd):
@@ -459,7 +471,7 @@ def linear_activation_backward_with_regularization(dA, cache, activation, lambd)
 # GRADED FUNCTION: L_model_backward
 
 
-def L_model_backward(AL, Y, caches):
+def L_model_backward(AL, Y, caches, DCaches, keep_prob):
     """
     Implement the backward propagation for the [LINEAR->RELU] * (L-1) -> LINEAR -> SIGMOID group
 
@@ -490,7 +502,7 @@ def L_model_backward(AL, Y, caches):
     # START CODE HERE ### (approx. 2 lines)
     current_cache = caches[L - 1]
     grads["dA" + str(L)], grads["dW" + str(L)], grads["db" + str(L)
-                                                      ] = linear_activation_backward(dAL, current_cache, "sigmoid")
+                                                      ] = linear_activation_backward(dAL, current_cache, "sigmoid", DCaches[L-1], keep_prob=1)
     ### END CODE HERE ###
 
     for l in reversed(range(L - 1)):
@@ -499,7 +511,7 @@ def L_model_backward(AL, Y, caches):
         # START CODE HERE ### (approx. 5 lines)
         current_cache = caches[l]
         dA_prev_temp, dW_temp, db_temp = linear_activation_backward(
-            grads["dA"+str(l+2)], current_cache, "relu")
+            grads["dA"+str(l+2)], current_cache, "relu", DCaches[l], keep_prob)
         grads["dA" + str(l + 1)] = dA_prev_temp
         grads["dW" + str(l + 1)] = dW_temp
         grads["db" + str(l + 1)] = db_temp
@@ -508,11 +520,11 @@ def L_model_backward(AL, Y, caches):
     return grads
 
 
-AL, Y_assess, caches = L_model_backward_test_case()
-grads = L_model_backward(AL, Y_assess, caches)
-print("dW1 = " + str(grads["dW1"]))
-print("db1 = " + str(grads["db1"]))
-print("dA1 = " + str(grads["dA1"]))
+# AL, Y_assess, caches = L_model_backward_test_case()
+# grads = L_model_backward(AL, Y_assess, caches)
+# print("dW1 = " + str(grads["dW1"]))
+# print("db1 = " + str(grads["db1"]))
+# print("dA1 = " + str(grads["dA1"]))
 
 
 def L_model_backward_with_regularization(AL, Y, caches, lambd):
@@ -569,7 +581,7 @@ def L_model_backward_with_regularization(AL, Y, caches, lambd):
 
 def update_parameters(parameters, grads, learning_rate):
     """
-    Update parameters using gradient descent
+    Update parameters using gradient descent 
 
     Arguments:
     parameters -- python dictionary containing your parameters 
@@ -619,7 +631,7 @@ def predict(X, y, parameters):
     p = np.zeros((1, m))
 
     # Forward propagation
-    probas, caches = L_model_forward(X, parameters)
+    probas, caches,_ = L_model_forward(X, parameters, 1)
 
     # convert probas to 0/1 predictions
     for i in range(0, probas.shape[1]):
