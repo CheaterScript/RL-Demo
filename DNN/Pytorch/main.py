@@ -5,6 +5,9 @@ import math
 import matplotlib.pyplot as plt
 from tf_utils import load_dataset, random_mini_batches, convert_to_one_hot
 
+# 设置设备
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 y_hat = torch.tensor(36)
 y = torch.tensor(39)
 
@@ -102,14 +105,14 @@ def initialize_parameters():
     torch.manual_seed(1)
 
     W1 = torch.nn.init.xavier_uniform(torch.empty(
-        25, 12288))
-    b1 = torch.zeros((25, 1))
+        25, 12288)).to(device)
+    b1 = torch.zeros((25, 1)).to(device)
     W2 = torch.nn.init.xavier_uniform(torch.empty(
-        12, 25))
-    b2 = torch.zeros((12, 1))
+        12, 25)).to(device)
+    b2 = torch.zeros((12, 1)).to(device)
     W3 = torch.nn.init.xavier_uniform(torch.empty(
-        6, 12))
-    b3 = torch.zeros((6, 1))
+        6, 12)).to(device)
+    b3 = torch.zeros((6, 1)).to(device)
 
     parameters = {
         "W1": W1,
@@ -156,7 +159,7 @@ def forward_propagation(X, parameters):
     return Z3
 
 
-X = torch.zeros((12288, 1))
+X = torch.zeros((12288, 1)).to(device)
 parameters = initialize_parameters()
 Z3 = forward_propagation(X, parameters)
 print("Z3 = " + str(Z3))
@@ -167,15 +170,15 @@ print("Z3 = " + str(Z3))
 def compute_cost(Z3, Y,debug=False):
     # PyTorch 期望的形状是 (batch_size, num_classes)，所以需要转置
     # Z3 形状: (6, num_examples) -> 转置为 (num_examples, 6)
-    logits = Z3.t()
+    logits = Z3.t().to(device)
     
     # Y 形状: (6, num_examples) -> 转置为 (num_examples, 6)
-    labels = Y.t()
+    labels = Y.t().to(device)
     
     # 如果是 one-hot 编码，转换为类别索引
     if labels.dim() == 2 and labels.shape[1] > 1:
         # 假设 Y 是 one-hot 编码，转换为类别索引
-        labels = torch.argmax(labels, dim=1)
+        labels = torch.argmax(labels, dim=1).to(device)
     
     # 计算交叉熵损失（内部包含 softmax）
     # 注意：CrossEntropyLoss 期望 logits（未经过 softmax）
@@ -195,7 +198,7 @@ print("cost = " + str(cost))
 
 
 def model(X_train, Y_train, X_test, Y_test, learning_rate=0.0001,
-          num_epochs=800, minibatch_size=32, print_cost=True):
+          num_epochs=1500, minibatch_size=32, print_cost=True):
 
     # (n_x: input size, m : number of examples in the train set)
     torch.manual_seed(1)
@@ -204,12 +207,12 @@ def model(X_train, Y_train, X_test, Y_test, learning_rate=0.0001,
     n_y = Y_train.shape[0]                            # n_y : output size
     costs = []                                        # To keep track of the cost
 
-    X = torch.from_numpy(X_train)
-    Y = torch.from_numpy(Y_train)
+    X = torch.from_numpy(X_train).to(device)
+    Y = torch.from_numpy(Y_train).to(device)
 
     parameters = initialize_parameters()
 
-    optimizer = torch.optim.Adam(params=list(parameters.values()), lr=learning_rate)
+    optimizer = torch.optim.SGD(params=list(parameters.values()), lr=learning_rate)
 
     for epoch in range(num_epochs):
         
@@ -222,9 +225,9 @@ def model(X_train, Y_train, X_test, Y_test, learning_rate=0.0001,
             
             (minibatch_X, minibatch_Y) = minibatch
             
-            Z3 = forward_propagation(minibatch_X, parameters)
+            Z3 = forward_propagation(minibatch_X.to(device), parameters)
 
-            cost = compute_cost(Z3, minibatch_Y)
+            cost = compute_cost(Z3, minibatch_Y.to(device))
             
             optimizer.zero_grad()
             cost.backward()
@@ -244,15 +247,15 @@ def model(X_train, Y_train, X_test, Y_test, learning_rate=0.0001,
     plt.title("Learning rate =" + str(learning_rate))
     plt.show()
 
-    X = torch.from_numpy(X_train)
-    Y = torch.from_numpy(Y_train)
+    X = torch.from_numpy(X_train).to(device)
+    Y = torch.from_numpy(Y_train).to(device)
 
     print("X_train shape:", X.shape)
     print("Y_train shape:", Y.shape)
     print("Y_train type:", type(Y))
 
     with torch.no_grad():
-        Z3 = forward_propagation(X_train, parameters)  # 重新前向传播
+        Z3 = forward_propagation(X, parameters)  # 重新前向传播
         predictions = torch.argmax(Z3, dim=0)
         Y_train_labels = torch.argmax(Y, dim=0)
         train_acc = (predictions == Y_train_labels).float().mean()
@@ -261,14 +264,14 @@ def model(X_train, Y_train, X_test, Y_test, learning_rate=0.0001,
         print ("Train Accuracy:", str(train_acc))
     
     
-    X = torch.from_numpy(X_test)
-    Y = torch.from_numpy(Y_test)
+    X = torch.from_numpy(X_test).to(device)
+    Y = torch.from_numpy(Y_test).to(device)
     
     print("X_train shape:", X.shape)
     print("Y_train shape:", Y.shape)
     print("Y_train type:", type(Y))
     with torch.no_grad():
-        Z3 = forward_propagation(X_test, parameters)  # 重新前向传播
+        Z3 = forward_propagation(X, parameters)  # 重新前向传播
         predictions = torch.argmax(Z3, dim=0)
         Y_test_labels = torch.argmax(Y, dim=0)
         test_acc = (predictions == Y_test_labels).float().mean()
